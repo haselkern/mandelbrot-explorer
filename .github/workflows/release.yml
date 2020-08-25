@@ -1,0 +1,38 @@
+name: Compile (and test) release builds 
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  main:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: Setup system
+      run: |
+       sudo apt install cargo docker libasound2-dev libudev-dev
+       cargo --version
+       cargo install cross
+        cd $GITHUB_WORKSPACE
+    - name: Run tests
+      run: cargo test
+    - name: Build Linux
+      run: |
+        cargo build --release
+        mv target/release/mandelbrot-explorer mandelbrot-explorer-linux
+        strip mandelbrot-explorer-linux
+    - name: Build Windows
+      run: |
+        cross build --release --target x86_64-pc-windows-gnu
+        mv target/x86_64-pc-windows-gnu/release/mandelbrot-explorer.exe mandelbrot-explorer-windows.exe
+    - name: Tar files
+      run: tar -cf binaries.tar mandelbrot-explorer-linux mandelbrot-explorer-windows.exe
+    - name: Create artifacts
+      uses: actions/upload-artifact@v2
+      with:
+        name: binaries
+        path: |
+          binaries.tar
